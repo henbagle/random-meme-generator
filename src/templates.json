@@ -1,0 +1,20 @@
+{
+    "templateWildcard": "*",
+    "templates": [
+        {
+            "memeTitle": "Do you want ants?",
+            "urlPrefix": "ants",
+            "lines": ["Do you want *?", "because that's how you get *"]
+        },
+        {
+            "memeTitle": "Change My Mind",
+            "urlPrefix": "cmm",
+            "lines": [""]
+        },
+        {
+            "memeTitle": "Distracted Boyfriend",
+            "urlPrefix": "db",
+            "lines": ["", "", ""]
+        }
+    ]
+}

@@ -1,34 +1,79 @@
 import {Connection, Model} from "mongoose";
 import {Router, Request, Response} from "express";
 import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./models";
+import {loadDefaultTemplatesFromJson, sanitizeStringForUrl} from "./helpers"
 
 interface RandomMemeOptions {
-    textCollectionName: string,
+    textCollectionName?: string,
     storeMemesInDB?: boolean,
     templateCollectionName?: string,
     textWildcardsAllowed?: boolean,
     templateWildcard?: string,
-    textWildcard?: string
+    textWildcard?: string,
+    apiUrl?: string,
+    pathToTemplates?: string,
 }
 
 class RandomMemeGenerator{
     connection: Connection;
     options: RandomMemeOptions;
 
-    memeModel: Model<TemplateDocument>;
+    memeModel: Model<TemplateDocument> | undefined;
     textModel: Model<MemeTextDocument>;
+    localTemplates: Template[];
 
-    constructor(connection: Connection, options: RandomMemeOptions)
+    constructor(connection: Connection, options: RandomMemeOptions = {})
     {
         this.connection = connection;
         this.options = options;
-        this.memeModel = connection.model(options.templateCollectionName || "memeTemplate", templateSchema);
+
+        // Set default options
+        this.options.apiUrl = options.apiUrl || "https://api.memegen.link/images/";
+        this.options.templateWildcard = options.templateWildcard || "*"
+        this.options.textWildcard = options.textWildcard || "*"
+        this.options.textWildcardsAllowed = options.textWildcardsAllowed || true;
+
+        // Setup model
         this.textModel = connection.model(options.textCollectionName || "memeText", textSchema);
+        if(options.storeMemesInDB)
+        {
+            this.memeModel = connection.model(options.templateCollectionName || "memeTemplate", templateSchema);
+            this.localTemplates = [];
+        }
+        else{
+            this.memeModel = undefined;
+            this.localTemplates = loadDefaultTemplatesFromJson();
+        }
     }
 
     getRandomMeme() : string
     {
         return '';
+    }
+
+    private async getRandomMemeTemplate() : Promise<Template>
+    {
+        const template : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
+        if(this.options.storeMemesInDB && template === undefined)
+        {
+            throw new Error("Unable to get template from database");
+        }
+        else if(this.options.storeMemesInDB && typeof template !== "undefined")
+        {
+            return template[0];
+        }
+        else
+        {   
+            // Get meme from json file
+            return {
+                memeTitle: "test",
+                urlPrefix: "test",
+                lines: [
+                    " ",
+                    ""
+                ]
+            };
+        }
     }
 
     private async getRandomMemeTexts(count: number = 1) : Promise<MemeTextDocument[]>
@@ -60,24 +105,6 @@ class RandomMemeGenerator{
         })
         return router;
     }
-}
-
-function sanitizeStringForUrl(input: string) : string {    
-    // Replace spacer characters with api replacements
-    let output: string = input.replace(/_/g, "__");
-    output = output.replace(/-/g, "--");
-    output = output.replace(/ /g, "_");
-    output = output.replace(/\n/g, "~n");
-
-    // Replace special characters with api replacements
-    output = output.replace(/\?/g, "~q");
-    output = output.replace(/&/g, "~a");
-    output = output.replace(/%/g, "~p");
-    output = output.replace(/#/g, "~h");
-    output = output.replace(/\//g, "~s");
-    output = output.replace(/\\/g, "~b");
-    output = output.replace(/"/g, "''");
-    return output;
 }
 
 export default RandomMemeGenerator;
