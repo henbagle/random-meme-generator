@@ -94,7 +94,7 @@ class RandomMemeGenerator{
     async getRandomMemeTemplate() : Promise<Template>
     {
         // Try to get a meme from the database
-        const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.find({urlPrefix:"ptj"});//aggregate([{$sample: {size: 1}}]);
+        const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
         if(this.options.storeMemesInDB && templatesFromDb === undefined)
         {
             throw new Error("Unable to get template from database");
