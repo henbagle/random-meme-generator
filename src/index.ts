@@ -84,7 +84,7 @@ class RandomMemeGenerator{
         return this.encodeUrl(lines, memeTemplate);
     }
 
-    private async getRandomMemeTemplate() : Promise<Template>
+    async getRandomMemeTemplate() : Promise<Template>
     {
         // Try to get a meme from the database
         const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
@@ -104,12 +104,12 @@ class RandomMemeGenerator{
         }
     }
 
-    private async getRandomMemeTexts(count: number = 1) : Promise<MemeTextDocument[]>
+    async getRandomMemeTexts(count: number = 1) : Promise<MemeTextDocument[]>
     {
         return await this.textModel.aggregate([{ $sample: { size: count } }])
     }
 
-    async processTexts(texts : MemeText[]) : Promise<string[]> 
+    private async processTexts(texts : MemeText[]) : Promise<string[]> 
     {
         return Promise.all(texts.map(async (t) => 
         {
@@ -128,7 +128,7 @@ class RandomMemeGenerator{
         }));
     }
 
-    applyTextToTemplate(templateLines: string[], texts: string[]) : string[] {
+    private applyTextToTemplate(templateLines: string[], texts: string[]) : string[] {
         const iterator = texts[Symbol.iterator]();
 
         // Enumerate over all template lines
