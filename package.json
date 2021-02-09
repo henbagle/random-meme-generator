@@ -1,6 +1,10 @@
 {
   "name": "random-meme-generator",
   "version": "0.0.1",
+  "description": "Express Middleware for generating random memes using Mongoose and memegen.api",
+  "author": {"name": "Ben Hagle", "email": "ben.hagle@gmail.com"},
+  "repository": {"url": "https://github.com/henbagle/random-meme-generator"},
+  "bugs": {"url": "https://github.com/henbagle/random-meme-generator/issues"},
   "main": "dist/index",
   "typings" : "dist/index",
   "license": "MIT",
