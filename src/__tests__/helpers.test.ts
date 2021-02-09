@@ -1,6 +1,6 @@
 import { assert } from "console"
 import { textSpanContainsPosition } from "typescript"
-import {sanitizeStringForUrl} from "../helpers"
+import {sanitizeStringForUrl} from "../lib/helpers"
 
 test("Spacer characters get swapped for replacements in string", () => {
     const input1 = "I like rocky-road.";

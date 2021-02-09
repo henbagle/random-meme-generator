@@ -1,7 +1,7 @@
 import {Connection, Model} from "mongoose";
 import {Router, Request, Response} from "express";
-import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./models";
-import {loadDefaultTemplatesFromJson, sanitizeStringForUrl, escapeRegex} from "./helpers"
+import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./lib/models";
+import {loadDefaultTemplatesFromJson, sanitizeStringForUrl, escapeRegex} from "./lib/helpers"
 
 interface RandomMemeOptions {
     textCollectionName: string,
