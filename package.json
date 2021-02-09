@@ -1,8 +1,8 @@
 {
   "name": "random-meme-generator",
   "version": "0.0.1",
-  "main": "lib/index",
-  "typings" : "lib/index",
+  "main": "dist/index",
+  "typings" : "dist/index",
   "license": "MIT",
   "scripts": {
     "prepublishOnly": "yarn build",
