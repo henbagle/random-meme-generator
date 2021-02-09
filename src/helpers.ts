@@ -1,7 +1,7 @@
 import { Template } from "./models"; 
 import * as defaultTemplates from "./templates.json";
 
-export function loadDefaultTemplatesFromJson(pathToJson?: string) : Template[]
+export function loadDefaultTemplatesFromJson() : Template[]
 {
     return defaultTemplates.templates;
 }
