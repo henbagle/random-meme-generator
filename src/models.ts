@@ -12,20 +12,20 @@ export const textSchema = new Schema<MemeTextDocument, Model<MemeTextDocument>>(
 });
 
 export interface Template{
-    memeTitle: String,
-    urlPrefix: String,
-    customImg?: String,
-    lines: String[]
+    memeTitle: string,
+    urlPrefix: string,
+    customImg?: string,
+    lines: string[]
 }
 
 export interface TemplateDocument extends Template, Document
 {
-    lines: Types.Array<String>
+    lines: Types.Array<string>
 }
 
 export interface MemeTextDocument extends MemeText, Document
 { };
 
 export interface MemeText{
-    text: String
+    text: string
 }
