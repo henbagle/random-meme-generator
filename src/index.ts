@@ -221,12 +221,12 @@ class RandomMemeGenerator{
             res.json(await this.textModel.find({}));
         })
 
-        router.post("/", async (req:Request, res:Response)  => {
+        router.post("/", async (req:Request, res:Response) => {
             res.json(await this.textModel.create({text: req.body.text}));
         })
 
-        router.delete("/text", function(req:Request, res:Response) {
-            // To be implemented
+        router.delete("/text", async (req:Request, res:Response) => {
+            res.json(await this.textModel.deleteOne({text: req.body.text}));
         })
         return router;
     }
