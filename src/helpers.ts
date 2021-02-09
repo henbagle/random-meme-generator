@@ -23,3 +23,7 @@ export function sanitizeStringForUrl(input: string) : string {
     output = output.replace(/"/g, "''");
     return output;
 }
+
+export function escapeRegex(input: string) : string {
+    return input.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
