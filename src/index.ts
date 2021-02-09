@@ -10,6 +10,7 @@ interface RandomMemeOptions {
     textWildcardsAllowed: boolean,
     templateWildcard: string,
     textWildcard: string,
+    textAlternateWildcard: string,
     apiUrl: string,
 }
 
@@ -58,6 +59,7 @@ class RandomMemeGenerator{
             textWildcardsAllowed: true,
             templateWildcard: '*',
             textWildcard: '*',
+            textAlternateWildcard: "",
             apiUrl: 'https://api.memegen.link'
         }
         
@@ -80,6 +82,11 @@ class RandomMemeGenerator{
 
         const lines = this.applyTextToTemplate(memeTemplate.lines, finishedTexts);
 
+        if(lines.reduce((t, l) => (t+l+"/")).length > 200)
+        {
+            return this.getRandomMemeUrl();
+        }
+
         // Create url from template
         return this.encodeUrl(lines, memeTemplate);
     }
@@ -87,7 +94,7 @@ class RandomMemeGenerator{
     async getRandomMemeTemplate() : Promise<Template>
     {
         // Try to get a meme from the database
-        const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
+        const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.find({urlPrefix:"ptj"});//aggregate([{$sample: {size: 1}}]);
         if(this.options.storeMemesInDB && templatesFromDb === undefined)
         {
             throw new Error("Unable to get template from database");
@@ -122,6 +129,15 @@ class RandomMemeGenerator{
                     const wildcardText : MemeText[] = await this.getRandomMemeTexts();
                     text = text.replace(new RegExp(escapeRegex(this.options.textWildcard), "g"), wildcardText[0].text);
                 }
+
+                if(this.options.textAlternateWildcard !== "")
+                {
+                    while(text.includes(this.options.textAlternateWildcard))
+                    {
+                        const wildcardText : MemeText[] = await this.getRandomMemeTexts();
+                        text = text.replace(new RegExp(escapeRegex(this.options.textAlternateWildcard), "g"), wildcardText[0].text);
+                    }
+                }
             }
             
             return text
@@ -141,9 +157,17 @@ class RandomMemeGenerator{
             else {
                 // Insert meme text into wildcards otherwise
                 while(line.includes(this.options.templateWildcard)) {
-                    let t = iterator.next();
-                    if(t.done) break;
-                    else line = line.replace(this.options.templateWildcard, t.value);
+                    // Handle specifying the index of the text with *_1
+                    if(line.includes(this.options.templateWildcard + "_")){
+                        const i = parseInt(line[line.indexOf(this.options.templateWildcard + "_")+2])
+                        line = line.replace(this.options.templateWildcard+"_"+i, texts[i]);
+                    }
+                    // Normal wildcard
+                    else{
+                        let t = iterator.next();
+                        if(t.done) break;
+                        else line = line.replace(this.options.templateWildcard, t.value);
+                    }
                 }
                 return line;
             }
@@ -157,10 +181,10 @@ class RandomMemeGenerator{
         {
             url = `${this.options.apiUrl}/images/custom`;
         }
-        url = lines.reduce((acc, next) => {
+        const slug = lines.reduce((acc, next) => {
             return acc + '/' + sanitizeStringForUrl(next);
-        }, url)
-        url = url + ".png";
+        }, "")
+        url = url + slug + ".png";
 
         if(template.customImg)
         {
