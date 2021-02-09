@@ -2,6 +2,7 @@ import {Connection, Model} from "mongoose";
 import {Router, Request, Response} from "express";
 import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./models";
 import {loadDefaultTemplatesFromJson, sanitizeStringForUrl} from "./helpers"
+import { throws } from "assert";
 
 interface RandomMemeOptions {
     textCollectionName?: string,
@@ -11,7 +12,6 @@ interface RandomMemeOptions {
     templateWildcard?: string,
     textWildcard?: string,
     apiUrl?: string,
-    pathToTemplates?: string,
 }
 
 class RandomMemeGenerator{
@@ -22,28 +22,48 @@ class RandomMemeGenerator{
     textModel: Model<MemeTextDocument>;
     localTemplates: Template[];
 
-    constructor(connection: Connection, options: RandomMemeOptions = {})
+    constructor(connection: Connection, options: RandomMemeOptions = {}, templates?: Template[])
     {
         this.connection = connection;
-        this.options = options;
 
-        // Set default options
-        this.options.apiUrl = options.apiUrl || "https://api.memegen.link/images/";
-        this.options.templateWildcard = options.templateWildcard || "*"
-        this.options.textWildcard = options.textWildcard || "*"
-        this.options.textWildcardsAllowed = options.textWildcardsAllowed || true;
+        // Load Options
+        this.options = this.mergeOptionsWithDefaults(options);
 
         // Setup model
-        this.textModel = connection.model(options.textCollectionName || "memeText", textSchema);
+        this.textModel = connection.model(this.options.textCollectionName as string, textSchema);
         if(options.storeMemesInDB)
         {
-            this.memeModel = connection.model(options.templateCollectionName || "memeTemplate", templateSchema);
+            this.memeModel = connection.model(this.options.templateCollectionName as string, templateSchema);
             this.localTemplates = [];
         }
-        else{
+        else
+        {
             this.memeModel = undefined;
-            this.localTemplates = loadDefaultTemplatesFromJson();
+            // Assign templates
+            if(templates)
+            {
+                this.localTemplates = templates;
+            }
+            else
+            {
+                this.localTemplates = loadDefaultTemplatesFromJson();
+            }
         }
+    }
+
+    private mergeOptionsWithDefaults(options: RandomMemeOptions) : RandomMemeOptions
+    {
+        const defaultOptions : RandomMemeOptions = {
+            textCollectionName:"memeText",
+            templateCollectionName: "memeTemplate",
+            storeMemesInDB: false,
+            textWildcardsAllowed: true,
+            templateWildcard: '*',
+            textWildcard: '*',
+            apiUrl: ''
+        }
+        
+        return {...defaultOptions, ...options};
     }
 
     getRandomMeme() : string
@@ -53,26 +73,20 @@ class RandomMemeGenerator{
 
     private async getRandomMemeTemplate() : Promise<Template>
     {
-        const template : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
-        if(this.options.storeMemesInDB && template === undefined)
+        const templatesFromDb : TemplateDocument[] | undefined = await this.memeModel?.aggregate([{$sample: {size: 1}}]);
+        if(this.options.storeMemesInDB && templatesFromDb === undefined)
         {
             throw new Error("Unable to get template from database");
         }
-        else if(this.options.storeMemesInDB && typeof template !== "undefined")
+        else if(this.options.storeMemesInDB && typeof templatesFromDb !== "undefined")
         {
-            return template[0];
+            return templatesFromDb[0];
         }
         else
         {   
-            // Get meme from json file
-            return {
-                memeTitle: "test",
-                urlPrefix: "test",
-                lines: [
-                    " ",
-                    ""
-                ]
-            };
+            // Get meme from local templates
+            const templateId = Math.floor(Math.random() * this.localTemplates.length);
+            return this.localTemplates[templateId];
         }
     }
 
@@ -81,6 +95,7 @@ class RandomMemeGenerator{
         return await this.textModel.aggregate([{ $sample: { size: count } }])
     }
 
+    // Express Middleware Router
     express() : Router
     {
         const router = Router();
@@ -88,15 +103,24 @@ class RandomMemeGenerator{
             res.json({url: this.getRandomMeme()});
         })
 
-        router.get("/memes", function(req:Request, res:Response) {
-
+        router.get("/memes", async (req:Request, res:Response) => {
+            // Send all meme templates, either from database or local file
+            if(this.options.storeMemesInDB)
+            {
+                res.json(await this.memeModel?.find({}));
+            }   
+            else
+            {
+                res.json(this.localTemplates);
+            }
         })
 
-        router.get("/text", function(req:Request, res:Response) {
-            
+        router.get("/text", async (req:Request, res:Response) => {
+            // Send all possible text responses
+            res.json(await this.textModel.find({}));
         })
 
-        router.post("/text", function(req:Request, res:Response) {
+        router.post("/text", (req:Request, res:Response)  => {
             
         })
 
