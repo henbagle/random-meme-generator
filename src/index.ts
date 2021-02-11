@@ -1,5 +1,5 @@
 import {Connection, Model} from "mongoose";
-import {Router, Request, Response} from "express";
+import {Router, Request, Response, NextFunction} from "express";
 import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./lib/models";
 import {loadDefaultTemplatesFromJson, sanitizeStringForUrl, escapeRegex} from "./lib/helpers"
 
@@ -12,6 +12,7 @@ interface RandomMemeOptions {
     textWildcard: string,
     textAlternateWildcard: string,
     apiUrl: string,
+    expressMiddleware: (req: Request, res: Response, next: NextFunction) => void
 }
 
 class RandomMemeGenerator{
@@ -60,7 +61,10 @@ class RandomMemeGenerator{
             templateWildcard: '*',
             textWildcard: '*',
             textAlternateWildcard: "",
-            apiUrl: 'https://api.memegen.link'
+            apiUrl: 'https://api.memegen.link',
+            expressMiddleware: function (req, res, next) {
+                next();
+            }
         }
         
         return {...defaultOptions, ...options};
@@ -198,13 +202,13 @@ class RandomMemeGenerator{
     express() : Router
     {
         const router = Router();
-        router.get("/", (req:Request, res:Response) => {
+        router.get("/", this.options.expressMiddleware, (req:Request, res:Response) => {
             this.getRandomMemeUrl().then((url) => {
                 res.json({url})
             })
         })
 
-        router.get("/memes", async (req:Request, res:Response) => {
+        router.get("/memes", this.options.expressMiddleware, async (req:Request, res:Response) => {
             // Send all meme templates, either from database or local file
             if(this.options.storeMemesInDB)
             {
@@ -216,16 +220,16 @@ class RandomMemeGenerator{
             }
         })
 
-        router.get("/text", async (req:Request, res:Response) => {
+        router.get("/text", this.options.expressMiddleware, async (req:Request, res:Response) => {
             // Send all possible text responses
             res.json(await this.textModel.find({}));
         })
 
-        router.post("/", async (req:Request, res:Response) => {
+        router.post("/text", this.options.expressMiddleware, async (req:Request, res:Response) => {
             res.json(await this.textModel.create({text: req.body.text}));
         })
 
-        router.delete("/text", async (req:Request, res:Response) => {
+        router.delete("/text", this.options.expressMiddleware, async (req:Request, res:Response) => {
             res.json(await this.textModel.deleteOne({text: req.body.text}));
         })
         return router;
