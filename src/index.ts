@@ -1,18 +1,29 @@
 import {Connection, Model} from "mongoose";
 import {Router, Request, Response, NextFunction} from "express";
-import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./lib/models";
+import {
+    templateSchema,
+    Template,
+    textSchema,
+    ConstructionOptions,
+    MemeTextDocument,
+    TemplateDocument,
+} from "./lib/models";
 import {loadDefaultTemplatesFromJson} from "./lib/helpers"
 import MemeConstructor from "./lib/MemeConstructor";
 
 interface RandomMemeOptions {
-    textCollectionName: string,
-    storeMemesInDB: boolean,
-    templateCollectionName: string,
-    textWildcardsAllowed: boolean,
-    templateWildcard: string,
-    textWildcard: string[],
-    apiUrl: string,
-    expressMiddleware: (req: Request, res: Response, next: NextFunction) => void
+    textCollectionName: string;
+    storeMemesInDB: boolean;
+    templateCollectionName: string;
+    textWildcardsAllowed: boolean;
+    templateWildcard: string;
+    textWildcard: string[] | string;
+    apiUrl: string;
+    expressMiddleware: (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => void;
 }
 
 class RandomMemeGenerator{
@@ -56,7 +67,7 @@ class RandomMemeGenerator{
         // Initialize meme constructor
         this.memeConstructor = new MemeConstructor((count) => {
             return this.getRandomMemeTexts(count);
-        }, this.options);
+        }, this.options as ConstructionOptions);
     }
 
     private mergeOptionsWithDefaults(options: Partial<RandomMemeOptions>) : RandomMemeOptions
@@ -73,7 +84,9 @@ class RandomMemeGenerator{
                 next();
             }
         }
-        
+
+        if (typeof options.textWildcard === "string")
+            options.textWildcard = [options.textWildcard];
         return {...defaultOptions, ...options};
     }
 
