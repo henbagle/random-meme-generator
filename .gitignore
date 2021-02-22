@@ -1,3 +1,14 @@
-/dist
-/node_modules
+node_modules/
+.node_modules/
+
+dist/
+coverage/
+
 yarn-error.log
+**/.DS_Store
+
+**/.vscode/*
+!**/.vscode/tasks.json
+!**/.vscode/settings.template.json
+!**/.vscode/launch.template.json
+!**/.vscode/extensions.json
