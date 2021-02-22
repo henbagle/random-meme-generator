@@ -29,3 +29,10 @@ export interface MemeTextDocument extends MemeText, Document
 export interface MemeText{
     text: string
 }
+
+export interface ConstructionOptions {
+    textWildcardsAllowed: boolean;
+    templateWildcard: string;
+    textWildcard: string[];
+    apiUrl: string;
+}

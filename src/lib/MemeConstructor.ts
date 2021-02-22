@@ -1,12 +1,5 @@
-import {Template, MemeText} from "./models";
+import { Template, MemeText, ConstructionOptions } from "./models";
 import {sanitizeStringForUrl, escapeRegex} from "./helpers";
-
-interface ConstructionOptions {
-    textWildcardsAllowed: boolean,
-    templateWildcard: string,
-    textWildcard: string[],
-    apiUrl: string,
-}
 
 class MemeConstructor {
     // Function provided by owner to collect a number of random meme texts
@@ -114,23 +107,20 @@ class MemeConstructor {
     }
 
     private encodeUrl(lines: string[], template: Template): string {
-        let url = `${this.options.apiUrl}/images/`;
+        const url = new URL(this.options.apiUrl);
 
-        // Apply meme url identifier
-        if (template.customImg) url = url + "custom";
-        else url = url + template.urlPrefix;
-
+        const memeId = template.customImg ? "custom" : template.urlPrefix;
         const slug = lines.reduce((acc, el) => {
             return acc + "/" + sanitizeStringForUrl(el);
         }, "");
-        
-        url = url + slug + ".png";
+        url.pathname = `images/${memeId}${slug}.png`;
 
-        if (template.customImg) {
-            url = url + `?background=${template.customImg}`;
-        }
+        // TODO: Make this use URLSearchParams
+        url.search = template.customImg
+            ? `?background=${template.customImg}`
+            : "";
 
-        return url;
+        return url.toString();
     }
 }
 
