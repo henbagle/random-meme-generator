@@ -1,7 +1,8 @@
 import {Connection, Model} from "mongoose";
 import {Router, Request, Response, NextFunction} from "express";
 import {templateSchema, Template, textSchema, MemeText, MemeTextDocument, TemplateDocument} from "./lib/models";
-import {loadDefaultTemplatesFromJson, sanitizeStringForUrl, escapeRegex} from "./lib/helpers"
+import {loadDefaultTemplatesFromJson} from "./lib/helpers"
+import MemeConstructor from "./lib/MemeConstructor";
 
 interface RandomMemeOptions {
     textCollectionName: string,
@@ -9,8 +10,7 @@ interface RandomMemeOptions {
     templateCollectionName: string,
     textWildcardsAllowed: boolean,
     templateWildcard: string,
-    textWildcard: string,
-    textAlternateWildcard: string,
+    textWildcard: string[],
     apiUrl: string,
     expressMiddleware: (req: Request, res: Response, next: NextFunction) => void
 }
@@ -22,6 +22,9 @@ class RandomMemeGenerator{
     memeModel: Model<TemplateDocument> | undefined;
     textModel: Model<MemeTextDocument>;
     localTemplates: Template[];
+    localMemeTexts: string[] = [];
+
+    memeConstructor: MemeConstructor;
 
     constructor(connection: Connection, options: Partial<RandomMemeOptions> = {}, templates?: Template[])
     {
@@ -49,6 +52,11 @@ class RandomMemeGenerator{
                 this.localTemplates = loadDefaultTemplatesFromJson();
             }
         }
+
+        // Initialize meme constructor
+        this.memeConstructor = new MemeConstructor((count) => {
+            return this.getRandomMemeTexts(count);
+        }, this.options);
     }
 
     private mergeOptionsWithDefaults(options: Partial<RandomMemeOptions>) : RandomMemeOptions
@@ -59,8 +67,7 @@ class RandomMemeGenerator{
             storeMemesInDB: false,
             textWildcardsAllowed: true,
             templateWildcard: '*',
-            textWildcard: '*',
-            textAlternateWildcard: "",
+            textWildcard: ['*'],
             apiUrl: 'https://api.memegen.link',
             expressMiddleware: function (req, res, next) {
                 next();
@@ -73,26 +80,7 @@ class RandomMemeGenerator{
     async getRandomMemeUrl() : Promise<string>
     {
         const memeTemplate : Template = await this.getRandomMemeTemplate();
-
-        // Count how many empty "slots" there are in the template
-        const textCount = memeTemplate.lines.reduce((count, line) => {
-            if(line == '') return count + 1;
-            else return count + (line.match(new RegExp(escapeRegex(this.options.templateWildcard), "g")) || []).length;
-        }, 0)
-
-        // Get texts and fill in wildcards within text
-        const memeTexts : MemeText[] = await this.getRandomMemeTexts(textCount);
-        const finishedTexts : string[] = await this.processTexts(memeTexts);
-
-        const lines = this.applyTextToTemplate(memeTemplate.lines, finishedTexts);
-
-        if(lines.reduce((t, l) => (t+l+"/")).length > 200)
-        {
-            return this.getRandomMemeUrl();
-        }
-
-        // Create url from template
-        return this.encodeUrl(lines, memeTemplate);
+        return this.memeConstructor.getRandomMemeUrl(memeTemplate);
     }
 
     async getRandomMemeTemplate() : Promise<Template>
@@ -115,87 +103,9 @@ class RandomMemeGenerator{
         }
     }
 
-    async getRandomMemeTexts(count: number = 1) : Promise<MemeTextDocument[]>
+    async getRandomMemeTexts(count: number) : Promise<MemeTextDocument[]>
     {
         return await this.textModel.aggregate([{ $sample: { size: count } }])
-    }
-
-    private async processTexts(texts : MemeText[]) : Promise<string[]> 
-    {
-        return Promise.all(texts.map(async (t) => 
-        {
-            let text = t.text;
-            if(this.options.textWildcardsAllowed)
-            {
-                // Fill wildcards in memetext with other memetext
-                while(text.includes(this.options.textWildcard))
-                {
-                    const wildcardText : MemeText[] = await this.getRandomMemeTexts();
-                    text = text.replace(new RegExp(escapeRegex(this.options.textWildcard), "g"), wildcardText[0].text);
-                }
-
-                if(this.options.textAlternateWildcard !== "")
-                {
-                    while(text.includes(this.options.textAlternateWildcard))
-                    {
-                        const wildcardText : MemeText[] = await this.getRandomMemeTexts();
-                        text = text.replace(new RegExp(escapeRegex(this.options.textAlternateWildcard), "g"), wildcardText[0].text);
-                    }
-                }
-            }
-            
-            return text
-        }));
-    }
-
-    private applyTextToTemplate(templateLines: string[], texts: string[]) : string[] {
-        const iterator = texts[Symbol.iterator]();
-
-        // Enumerate over all template lines
-        return templateLines.map((line) => {
-            // Insert meme text if line is empty
-            if(line === "") {
-                let t = iterator.next();
-                return (t.done ? " " : t.value);
-            }
-            else {
-                // Insert meme text into wildcards otherwise
-                while(line.includes(this.options.templateWildcard)) {
-                    // Handle specifying the index of the text with *_1
-                    if(line.includes(this.options.templateWildcard + "_")){
-                        const i = parseInt(line[line.indexOf(this.options.templateWildcard + "_")+2])
-                        line = line.replace(this.options.templateWildcard+"_"+i, texts[i]);
-                    }
-                    // Normal wildcard
-                    else{
-                        let t = iterator.next();
-                        if(t.done) break;
-                        else line = line.replace(this.options.templateWildcard, t.value);
-                    }
-                }
-                return line;
-            }
-        })
-    }
-
-    encodeUrl(lines: string[], template: Template) : string
-    {
-        let url = `${this.options.apiUrl}/images/${template.urlPrefix}`;
-        if(template.customImg)
-        {
-            url = `${this.options.apiUrl}/images/custom`;
-        }
-        const slug = lines.reduce((acc, next) => {
-            return acc + '/' + sanitizeStringForUrl(next);
-        }, "")
-        url = url + slug + ".png";
-
-        if(template.customImg)
-        {
-            url = url + `?background=${template.customImg}`;
-        }
-
-        return url;
     }
 
     // Express Middleware Router
