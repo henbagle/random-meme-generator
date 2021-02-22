@@ -11,7 +11,7 @@ export function sanitizeStringForUrl(input: string) : string {
     let output: string = input.replace(/_/g, "__");
     output = output.replace(/-/g, "--");
     output = output.replace(/ /g, "_");
-    output = output.replace(/\n/g, "~n");
+    output = output.replace(/\\n/g, "~n"); // I think you'll have to escape the newline character in templates
 
     // Replace special characters with api replacements
     output = output.replace(/\?/g, "~q");
