@@ -55,7 +55,7 @@ class MemeConstructor
             if(this.options.textWildcardsAllowed)
             {
                 // Fill wildcards in memetext with other memetext, iterating over all wildcards
-                for(let wildcard in this.options.textWildcard)
+                for(let wildcard of this.options.textWildcard)
                 {
                     const regExp = new RegExp(escapeRegex(wildcard), "g")
                     while(text.includes(wildcard))
