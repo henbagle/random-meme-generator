@@ -9,6 +9,14 @@ const options = {
     apiUrl: "https://api.memegen.link",
 };
 
+const createMockFn = (memes: MemeText[]) => {
+    return (count: number) => {
+        return new Promise<MemeText[]>((resolve, reject) => {
+            resolve(memes);
+        });
+    };
+};
+
 const testTemplates = {
     ants: {
         memeTitle: "Do you want ants?",
@@ -43,11 +51,7 @@ test("Blank template lines are correctly filled", async () => {
     const memeText1 = [{ text: "Alden Sucks" }];
     const template = testTemplates.cmm; // Stephen Crowder change my mind
 
-    const mockCallback = jest.fn((count) => {
-        return new Promise<MemeText[]>((resolve, reject) => {
-            resolve(memeText1);
-        });
-    });
+    const mockCallback = jest.fn(createMockFn(memeText1));
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
@@ -62,11 +66,7 @@ test("Wildcards in template lines are correctly filled", async () => {
     const memeText1 = [{ text: "Bears" }, { text: "Rats" }];
     const template = testTemplates.ants; // Do you want ants? meme
 
-    const mockCallback = jest.fn((count) => {
-        return new Promise<MemeText[]>((resolve, reject) => {
-            resolve(memeText1);
-        });
-    });
+    const mockCallback = jest.fn(createMockFn(memeText1));
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
@@ -81,11 +81,7 @@ test("Custom image templates produce correct url", async () => {
     const memeText1 = [{ text: "Phoetograph" }];
     const template = testTemplates.custom; // Do you want ants? meme
 
-    const mockCallback = jest.fn((count) => {
-        return new Promise<MemeText[]>((resolve, reject) => {
-            resolve(memeText1);
-        });
-    });
+    const mockCallback = jest.fn(createMockFn(memeText1));
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
@@ -105,11 +101,7 @@ test("Memes with indexing wildcards work", async () => {
     ];
     const template = testTemplates.gru; // Do you want ants? meme
 
-    const mockCallback = jest.fn((count) => {
-        return new Promise<MemeText[]>((resolve, reject) => {
-            resolve(memeText1);
-        });
-    });
+    const mockCallback = jest.fn(createMockFn(memeText1));
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
@@ -130,27 +122,19 @@ test("Memes that exceed the maximum length get rejected", async () => {
             text:
                 "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
         },
-    ];
+    ];;
     const memeText2 = [{ text: "Bears" }, { text: "Rats" }];
     const template = testTemplates.ants; // Do you want ants? meme
 
     const mockCallback = jest
         .fn()
-        .mockImplementationOnce((count) => {
-            return new Promise<MemeText[]>((resolve, reject) => {
-                resolve(memeText1); // First call with super long memetext
-            });
-        })
-        .mockImplementationOnce((count) => {
-            return new Promise<MemeText[]>((resolve, reject) => {
-                resolve(memeText2); // Should be called when first meme gets rejected
-            });
-        });
+        .mockImplementationOnce(createMockFn(memeText1)) // First memetext with super long length
+        .mockImplementationOnce(createMockFn(memeText2)); // Should be called when first memetext gets rejected
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
     const url = await memeGen.getRandomMemeUrl(template);
-    const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Do_you_want_Bears~q/because_that's_how_you_get_Rats.png`;
+    const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Do_you_want_Bears~q/because_that's_how_you_get_Rats.png`;;;
     expect(mockCallback).toHaveBeenCalledTimes(2);
     expect(mockCallback).toHaveBeenLastCalledWith(2);
     expect(url).toBe(urlOut);
@@ -163,16 +147,8 @@ test("Wildcards within memetext work", async () => {
 
     const mockCallback = jest
         .fn()
-        .mockImplementationOnce((count) => {
-            return new Promise<MemeText[]>((resolve, reject) => {
-                resolve(memeText1); // First call with super long memetext
-            });
-        })
-        .mockImplementationOnce((count) => {
-            return new Promise<MemeText[]>((resolve, reject) => {
-                resolve(memeText2); // Should be called when first meme gets rejected
-            });
-        });
+        .mockImplementationOnce(createMockFn(memeText1)) // First call containing wildcards
+        .mockImplementationOnce(createMockFn(memeText2)); // Call to fill in the wildcards
 
     const memeGen = new MemeConstructor(mockCallback, options);
 
