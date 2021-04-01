@@ -1,6 +1,8 @@
 import { Template, MemeText, ConstructionOptions } from "./models";
 import {sanitizeStringForUrl, escapeRegex} from "./helpers";
 
+const MAXITERATIONS = 20;
+
 class MemeConstructor {
     // Function provided by owner to collect a number of random meme texts
     getRandomTexts: (this: void, count: number) => Promise<MemeText[]>;
@@ -80,8 +82,10 @@ class MemeConstructor {
             } 
             // Otherwise, try to insert meme text into wildcards
             else {
-                while (line.includes(wc)) {
-                    
+                let iterations = 0;
+                while (line.includes(wc) && iterations < MAXITERATIONS) {
+                    iterations++;
+
                     // Handle specifying the index of the text with *_ indexing
                     if (line.includes(wc + "_")) {
                         const targetIndex = parseInt(
