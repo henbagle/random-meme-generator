@@ -1,20 +1,13 @@
 import { triggerAsyncId } from "async_hooks";
 import MemeConstructor from "../lib/MemeConstructor";
-import { MemeText } from "../lib/models";
+import MemeProvider from "../lib/MemeProvider";
+import { MemeTemplate, MemeText } from "../lib/memeUnits";
 
 const options = {
     textWildcardsAllowed: true,
     templateWildcard: "*",
     textWildcard: ["*", "+"],
     apiUrl: "https://api.memegen.link",
-};
-
-const createMockFn = (memes: MemeText[]) => {
-    return (count: number) => {
-        return new Promise<MemeText[]>((resolve, reject) => {
-            resolve(memes);
-        });
-    };
 };
 
 const testTemplates = {
@@ -51,14 +44,14 @@ test("Blank template lines are correctly filled", async () => {
     const memeText1 = [{ text: "Alden Sucks" }];
     const template = testTemplates.cmm; // Stephen Crowder change my mind
 
-    const mockCallback = jest.fn(createMockFn(memeText1));
+    const provider = createMockMemeProvider(memeText1);
 
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const memeGen = new MemeConstructor(provider, options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Alden_Sucks.png`;
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenCalledWith(1);
+    expect(provider.mock).toHaveBeenCalledTimes(1);
+    expect(provider.mock).toHaveBeenCalledWith(1);
     expect(url).toBe(urlOut);
 });
 
@@ -66,14 +59,13 @@ test("Wildcards in template lines are correctly filled", async () => {
     const memeText1 = [{ text: "Bears" }, { text: "Rats" }];
     const template = testTemplates.ants; // Do you want ants? meme
 
-    const mockCallback = jest.fn(createMockFn(memeText1));
-
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const provider = createMockMemeProvider(memeText1);
+    const memeGen = new MemeConstructor(provider, options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Do_you_want_Bears~q/because_that's_how_you_get_Rats.png`;
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenCalledWith(2);
+    expect(provider.mock).toHaveBeenCalledTimes(1);
+    expect(provider.mock).toHaveBeenCalledWith(2);
     expect(url).toBe(urlOut);
 });
 
@@ -81,14 +73,13 @@ test("Custom image templates produce correct url", async () => {
     const memeText1 = [{ text: "Phoetograph" }];
     const template = testTemplates.custom; // Do you want ants? meme
 
-    const mockCallback = jest.fn(createMockFn(memeText1));
-
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const provider = createMockMemeProvider(memeText1);
+    const memeGen = new MemeConstructor(provider, options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/custom/_/Phoetograph.png?background=${template.customImg}`;
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenCalledWith(1);
+    expect(provider.mock).toHaveBeenCalledTimes(1);
+    expect(provider.mock).toHaveBeenCalledWith(1);
     expect(url).toBe(urlOut);
 });
 
@@ -101,14 +92,13 @@ test("Memes with indexing wildcards work", async () => {
     ];
     const template = testTemplates.gru; // Do you want ants? meme
 
-    const mockCallback = jest.fn(createMockFn(memeText1));
-
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const provider = createMockMemeProvider(memeText1);
+    const memeGen = new MemeConstructor(provider, options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Kai/Alden/Frog/Frog.png`;
-    expect(mockCallback).toHaveBeenCalledTimes(1);
-    expect(mockCallback).toHaveBeenCalledWith(4);
+    expect(provider.mock).toHaveBeenCalledTimes(1);
+    expect(provider.mock).toHaveBeenCalledWith(4);
     expect(url).toBe(urlOut);
 });
 
@@ -131,7 +121,7 @@ test("Memes that exceed the maximum length get rejected", async () => {
         .mockImplementationOnce(createMockFn(memeText1)) // First memetext with super long length
         .mockImplementationOnce(createMockFn(memeText2)); // Should be called when first memetext gets rejected
 
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const memeGen = new MemeConstructor(new FakeMemeProvider(mockCallback), options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Do_you_want_Bears~q/because_that's_how_you_get_Rats.png`;;;
@@ -150,7 +140,7 @@ test("Wildcards within memetext work", async () => {
         .mockImplementationOnce(createMockFn(memeText1)) // First call containing wildcards
         .mockImplementationOnce(createMockFn(memeText2)); // Call to fill in the wildcards
 
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const memeGen = new MemeConstructor(new FakeMemeProvider(mockCallback), options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Hello_Alden/Howdy.png`;
@@ -176,7 +166,7 @@ test("Nested wildcards within memetext work", async () => {
         });
     });
 
-    const memeGen = new MemeConstructor(mockCallback, options);
+    const memeGen = new MemeConstructor(new FakeMemeProvider(mockCallback), options);
 
     const url = await memeGen.getRandomMemeUrl(template);
     const urlOut = `${options.apiUrl}/images/${template.urlPrefix}/Haldor_frog_frog/Howdy.png`;
@@ -184,3 +174,43 @@ test("Nested wildcards within memetext work", async () => {
     expect(mockCallback).toHaveBeenLastCalledWith(1);
     expect(url).toBe(urlOut);
 });
+
+const createMockFn = (memes: MemeText[]) => {
+    return (count: number) => {
+        return new Promise<MemeText[]>((resolve, reject) => {
+            resolve(memes);
+        });
+    };
+};
+
+const createMockMemeProvider = (memes: MemeText[]) => {
+    const mockCallback = jest.fn(createMockFn(memes));
+    return new FakeMemeProvider(mockCallback);
+}
+
+class FakeMemeProvider extends MemeProvider
+{
+    public mock;
+    constructor(mock : jest.Mock<Promise<MemeText[]>, [count: number]>) {
+        super();
+        this.mock = mock;
+    }
+    getRandomMemeText(count: number): Promise<MemeText[]> {
+        return this.mock(count);
+    }
+    getRandomMemeTemplate(): Promise<MemeTemplate> {
+        throw new Error("Method not implemented.");
+    }
+    getAllMemeTemplates(): Promise<MemeTemplate[]> {
+        throw new Error("Method not implemented.");
+    }
+    getAllMemeText(): Promise<MemeText[]> {
+        throw new Error("Method not implemented.");
+    }
+    addMemeText(text: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    deleteMemeText(text: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+}
