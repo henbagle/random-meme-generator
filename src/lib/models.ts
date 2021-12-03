@@ -11,14 +11,14 @@ export const textSchema = new Schema<MemeTextDocument, Model<MemeTextDocument>>(
     text: String,
 });
 
-export interface Template{
+export interface CustomTemplate{
     memeTitle: string,
     urlPrefix: string,
     customImg?: string,
     lines: string[]
 }
 
-export interface TemplateDocument extends Template, Document
+export interface TemplateDocument extends CustomTemplate, Document
 {
     lines: Types.Array<string>
 }

@@ -1,7 +1,7 @@
-import { Template } from "./models"; 
+import { CustomTemplate } from "./models"; 
 import * as defaultTemplates from "./templates.json";
 
-export function loadDefaultTemplatesFromJson() : Template[]
+export function loadDefaultTemplatesFromJson() : CustomTemplate[]
 {
     return defaultTemplates.templates;
 }
