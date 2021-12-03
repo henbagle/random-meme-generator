@@ -1,4 +1,4 @@
-import { CustomTemplate } from "./models"; 
+import { CustomTemplate } from "./memeUnits";
 import * as defaultTemplates from "./templates.json";
 
 export function loadDefaultTemplatesFromJson() : CustomTemplate[]

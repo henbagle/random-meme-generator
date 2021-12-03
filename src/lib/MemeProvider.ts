@@ -1,11 +1,11 @@
-import { MemeText, CustomTemplate } from "./models";
+import {MemeTemplate, MemeText} from "./memeUnits";
 
-export abstract class MemeProvider
+export default abstract class MemeProvider
 {
     abstract getRandomMemeText(count: number) : Promise<MemeText[]>;
-    abstract getRandomMemeTemplate() : Promise<CustomTemplate>;
+    abstract getRandomMemeTemplate() : Promise<MemeTemplate>;
 
-    abstract getAllMemeTemplates() : Promise<CustomTemplate[]>;
+    abstract getAllMemeTemplates() : Promise<MemeTemplate[]>;
     abstract getAllMemeText() : Promise<MemeText[]>;
     abstract addMemeText(text: string) : Promise<any>;
     abstract deleteMemeText(text: string) : Promise<any>;

@@ -1,21 +1,9 @@
-import {Connection, Model, PromiseProvider} from "mongoose";
 import {Router, Request, Response, NextFunction} from "express";
-import {
-    templateSchema,
-    CustomTemplate,
-    textSchema,
-    ConstructionOptions,
-    MemeTextDocument,
-    TemplateDocument,
-} from "./lib/models";
-import {loadDefaultTemplatesFromJson} from "./lib/helpers"
-import MemeConstructor from "./lib/MemeConstructor";
-import { MemeProvider } from "./lib/MemeProvider";
+import { CustomTemplate } from "./lib/memeUnits";
+import MemeConstructor, { ConstructionOptions } from "./lib/MemeConstructor";
+import MemeProvider from "./lib/MemeProvider";
 
 interface RandomMemeOptions {
-    textCollectionName: string;
-    storeMemesInDB: boolean;
-    templateCollectionName: string;
     textWildcardsAllowed: boolean;
     templateWildcard: string;
     textWildcard: string[] | string;
@@ -30,18 +18,12 @@ interface RandomMemeOptions {
 class RandomMemeGenerator{
     options: RandomMemeOptions;
     provider: MemeProvider;
-    localMemeTexts: string[] = [];
-
     memeConstructor: MemeConstructor;
 
     constructor(options: Partial<RandomMemeOptions> = {}, provider?: MemeProvider)
     {
-
-        // Load Options
         this.options = this.mergeOptionsWithDefaults(options);
         this.provider = provider ?? this.getDefaultProvider();
-
-        // Initialize meme constructor
         this.memeConstructor = new MemeConstructor(this.provider, this.options as ConstructionOptions);
     }
 
@@ -54,9 +36,6 @@ class RandomMemeGenerator{
     private mergeOptionsWithDefaults(options: Partial<RandomMemeOptions>) : RandomMemeOptions
     {
         const defaultOptions : RandomMemeOptions = {
-            textCollectionName:"memeText",
-            templateCollectionName: "memeTemplate",
-            storeMemesInDB: false,
             textWildcardsAllowed: true,
             templateWildcard: '*',
             textWildcard: ['*'],

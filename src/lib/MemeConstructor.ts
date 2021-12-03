@@ -1,21 +1,29 @@
-import { CustomTemplate, MemeText, ConstructionOptions } from "./models";
+import { CustomTemplate, MemeTemplate, MemeText } from "./memeUnits";
 import { sanitizeStringForUrl, escapeRegex } from "./helpers";
-import { MemeProvider } from "./MemeProvider";
+import MemeProvider from "./MemeProvider";
 
 const MAXITERATIONS = 20;
 
+export interface ConstructionOptions {
+    textWildcardsAllowed: boolean;
+    templateWildcard: string;
+    textWildcard: string[];
+    apiUrl: string;
+}
+
 class MemeConstructor {
-    // Function provided by owner to collect a number of random meme texts
     provider : MemeProvider;
     options: ConstructionOptions;
 
-    constructor(memeProvider : MemeProvider,options: ConstructionOptions) {
+    constructor(memeProvider : MemeProvider, options: ConstructionOptions) {
         this.options = options;
         this.provider = memeProvider;
     }
 
     // Create a random meme url from an input template
-    async getRandomMemeUrl(memeTemplate: CustomTemplate): Promise<string> {
+    async getRandomMemeUrl(template: MemeTemplate): Promise<string> {
+
+        var memeTemplate = template as CustomTemplate;
 
         // Count how many empty "slots" there are in the template
         const textCount = memeTemplate.lines.reduce((count, line) => {
